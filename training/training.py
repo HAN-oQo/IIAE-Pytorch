@@ -182,8 +182,13 @@ class Trainer():
         out = (x + 1) / 2
         return out.clamp_(0, 1)
     
-    def reconstruction_loss(self, recon, input):
-        rec_loss = nn.L1Loss()
+    def reconstruction_loss(self, recon, input, name):
+        if name == "L1":
+            rec_loss = nn.L1Loss()
+        elif name == "MSE":
+            rec_loss = nn.MSELoss()
+        else:
+            rec_loss = nn.L1Loss()
         return rec_loss(recon, input)
     
     def KLD_loss_v1(self, mu, log_var):
@@ -196,8 +201,8 @@ class Trainer():
 
     def loss_function(self, recon_X, recon_Y, input_X, input_Y, zx_mu, zy_mu, zx_s_mu, zy_s_mu, zs_mu, zx_log_var, zy_log_var, zx_s_log_var, zy_s_log_var, zs_log_var):
 
-        recon_X_loss = self.reconstruction_loss(recon_X, input_X)
-        recon_Y_loss = self.reconstruction_loss(recon_Y, input_Y)
+        recon_X_loss = self.reconstruction_loss(recon_X, input_X, "MSE")
+        recon_Y_loss = self.reconstruction_loss(recon_Y, input_Y, "MSE")
 
         
 

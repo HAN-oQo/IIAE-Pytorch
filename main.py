@@ -7,7 +7,7 @@ import torch.backends.cudnn as cudnn
 
 from training.training import Trainer
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Get config file from command line arguments
@@ -18,6 +18,18 @@ config_path = sys.argv[1]
 # Open config file
 with open(config_path) as f:
     config = json.load(f)
+
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+if torch.cuda.is_available():
+    if config["gpu"] == 0:
+        device = 'cuda:0'
+    if config["gpu"] == 1:
+        device = 'cuda:1'
+    else:
+        device = 'cuda'
+else:
+    device = 'cpu'
+
 
 if config["path_to_data"] == "":
     raise(RuntimeError("Path to data not specified. Modify path_to_data attribute in config to point to data."))
