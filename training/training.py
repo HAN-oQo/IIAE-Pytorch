@@ -94,6 +94,12 @@ class Trainer():
         self.sample_freq = sample_freq
         self.model_save_freq = model_save_freq
 
+        #################
+        # Constant Tensor
+        ##################
+        self.normal_mu = torch.tensor(np.float32(0)).to(self.device)
+        self.normal_log_var = torch.tensor(np.float32(0)).to(self.device)
+
         ################
         # Test Setting
         ################
@@ -186,23 +192,22 @@ class Trainer():
     
     def KLD_loss(self, mu0, log_var0, mu1, log_var1):
         kld_loss = torch.mean(-0.5 * torch.sum(1 + (log_var0 - log_var1) - ((mu0 - mu1) ** 2 + log_var0.exp()/log_var1.exp()), dim = 1), dim = 0)
-        return kld_loss
+        return self.kld_weight * kld_loss
 
     def loss_function(self, recon_X, recon_Y, input_X, input_Y, zx_mu, zy_mu, zx_s_mu, zy_s_mu, zs_mu, zx_log_var, zy_log_var, zx_s_log_var, zy_s_log_var, zs_log_var):
 
         recon_X_loss = self.reconstruction_loss(recon_X, input_X)
         recon_Y_loss = self.reconstruction_loss(recon_Y, input_Y)
 
-        normal_mu = torch.tensor(np.float32(0))
-        normal_log_var = torch.tensor(np.float32(0))
+        
 
-        kl_X_loss = self.KLD_loss(zx_mu, zx_log_var, normal_mu, normal_log_var)
-        kl_Y_loss = self.KLD_loss(zy_mu, zy_log_var, normal_mu, normal_log_var)
-        kl_S_loss = self.KLD_loss(zs_mu, zs_log_var, normal_mu, normal_log_var)
+        kl_X_loss = self.KLD_loss(zx_mu, zx_log_var, self.normal_mu, self.normal_log_var)
+        kl_Y_loss = self.KLD_loss(zy_mu, zy_log_var, self.normal_mu, self.normal_log_var)
+        kl_S_loss = self.KLD_loss(zs_mu, zs_log_var, self.normal_mu, self.normal_log_var)
         kl_interX_loss = self.KLD_loss(zs_mu, zs_log_var, zx_s_mu, zx_s_log_var)
         kl_interY_loss = self.KLD_loss(zs_mu, zs_log_var, zy_s_mu, zy_s_log_var)
 
-        reg_coeff = 1.0 - ((-1)*torch.tensor(self.global_iters, dtype = torch.float32)/25000.0).exp()
+        reg_coeff = (1.0 - ((-1)*torch.tensor(self.global_iters, dtype = torch.float32)/25000.0).exp()).to(self.device)
 
         total_loss = self.rec_weight * (recon_X_loss + recon_Y_loss) \
                     + reg_coeff * self.X_kld_weight * (kl_X_loss + kl_Y_loss) \
@@ -227,11 +232,11 @@ class Trainer():
             self.zx_encoder.to(self.device)
             self.zy_encoder.to(self.device)
             self.FE.to(self.device)
-            self.zs_encoder(self.device)
-            self.zx_s_encoder(self.device)
-            self.zy_s_encoder(self.device)
-            self.x_decoder(self.device)
-            self.y_decoder(self.device)
+            self.zs_encoder.to(self.device)
+            self.zx_s_encoder.to(self.device)
+            self.zy_s_encoder.to(self.device)
+            self.x_decoder.to(self.device)
+            self.y_decoder.to(self.device)
 
 
         print("Start Training...")
@@ -295,7 +300,7 @@ class Trainer():
 
             if self.global_iters % self.sample_freq == 0:
                 with torch.no_grad():
-                    ith_sample_dir = os.path.join(self.sample_dir, self.global_iters)
+                    ith_sample_dir = os.path.join(self.sample_dir, str(self.global_iters))
                     if not os.path.exists(ith_sample_dir):
                         os.makedirs(ith_sample_dir)
 

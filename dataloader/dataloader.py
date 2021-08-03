@@ -29,6 +29,6 @@ def load_dataloader(dataset='AFHQ', path_to_data= '/home/hankyu/hankyu/disentang
         ])
     Data_Set = Cat2Dog(path_to_data= path_to_data, train = train, transforms = all_transforms)
     print(len(Data_Set))
-    data_loader = data.DataLoader(Data_Set, batch_size = batch_size, shuffle = True,  num_workers = 0)
+    data_loader = data.DataLoader(Data_Set, batch_size = batch_size, shuffle = True,  num_workers = 3)
 
     return data_loader, len(Data_Set)
