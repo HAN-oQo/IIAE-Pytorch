@@ -38,16 +38,6 @@ class Exclusive_Specific_Encoder(BaseModel):
 
         self.weight_init()
 
-    # def weight_init(self):
-    #     for block in self._modules:
-    #         for m in self._modules[block]:
-    #             xavier_init(m)
-
-    # def reparameterize(self, mu, log_var):
-
-    #     std = torch.exp(0.5 * log_var)s
-    #     eps = torch.randn_like(std)
-    #     return mu + (eps * std)
         
     def forward(self, input):
         B, _, _, _ = input.size()
@@ -76,10 +66,6 @@ class Shared_Feature_extractor(BaseModel):
         self.downsample = nn.Sequential(*downsample)
         self.weight_init()
 
-    # def weight_init(self):
-    #     for block in self._modules:
-    #         for m in self._modules[block]:
-    #             xavier_init(m)
 
     def forward(self, input):
         out = self.downsample(input)
@@ -110,16 +96,6 @@ class Exclusive_Shared_Encoder(BaseModel):
 
         self.weight_init()
 
-    # def weight_init(self):
-    #     for block in self._modules:
-    #         for m in self._modules[block]:
-    #             xavier_init(m)
-
-    # def reparameterize(self, mu, log_var):
-    
-    #     std = torch.exp(0.5 * log_var)
-    #     eps = torch.randn_like(std)
-    #     return mu + (eps * std)
 
     def forward(self, input):
         B, _, _, _ = input.size()
@@ -156,16 +132,6 @@ class Common_Shared_Encoder(BaseModel):
 
         self.weight_init()
 
-    # def weight_init(self):
-    #     for block in self._modules:
-    #         for m in self._modules[block]:
-    #             xavier_init(m)
-
-    # def reparameterize(self, mu, log_var):
-    
-    #     std = torch.exp(0.5 * log_var)
-    #     eps = torch.randn_like(std)
-    #     return mu + (eps * std)
 
     def forward(self, inputX, inputY):
         input = torch.cat((inputX, inputY), dim = 1) #channel-wise concat

@@ -17,7 +17,7 @@ from training.logger import Logger
 
 class Trainer():
 
-    def __init__(self, device, train, directory, path_to_data, batch_size, size, max_iters, resume_iters, restored_model_path, lr, weight_decay, beta1, beta2, milestones, scheduler_gamma, rec_weight, X_kld_weight, S_kld_weight, inter_kld_weight, print_freq, sample_freq, model_save_freq, test_iters, test_path):
+    def __init__(self, device, train, directory, dataset, path_to_data, batch_size, size, max_iters, resume_iters, restored_model_path, lr, weight_decay, beta1, beta2, milestones, scheduler_gamma, rec_weight, X_kld_weight, S_kld_weight, inter_kld_weight, print_freq, sample_freq, model_save_freq, test_iters, test_path):
 
         self.device = device
         self.train_bool = train
@@ -49,10 +49,11 @@ class Trainer():
         ##################
         # Data Loader
         ##################
+        self.dataset = dataset
         self.path_to_data = path_to_data
         self.batch_size = batch_size
         self.size = size
-        self.data_loader , data_length = load_dataloader(dataset = "AFHQ", 
+        self.data_loader , data_length = load_dataloader(dataset = self.dataset, 
                                                         path_to_data = self.path_to_data,
                                                         train = self.train_bool,
                                                         size = self.size,
@@ -82,7 +83,7 @@ class Trainer():
         # Loss hyperparameters 
         ################
         self.rec_weight = rec_weight
-        self.kld_weight = self.batch_size / data_length
+        self.kld_weight = self.batch_size /(data_length//2) 
         self.X_kld_weight = X_kld_weight
         self.S_kld_weight = S_kld_weight
         self.inter_kld_weight = inter_kld_weight
@@ -149,7 +150,7 @@ class Trainer():
         # self.print_network(self.decoder, 'decoders')
         
 
-    def load_model(self, path, rersume_iters):
+    def load_model(self, path, resume_iters):
         """Restore the trained generator and discriminator."""
         resume_iters = int(resume_iters)
         print('Loading the trained models from iters {}...'.format(resume_iters))
@@ -182,8 +183,14 @@ class Trainer():
         out = (x + 1) / 2
         return out.clamp_(0, 1)
     
-    def reconstruction_loss(self, recon, input):
-        rec_loss = nn.L1Loss()
+    def reconstruction_loss(self, recon, input, name):
+        if name == "L1":
+            rec_loss = nn.L1Loss()
+        elif name == "MSE":
+            rec_loss = nn.MSELoss()
+        else:
+            rec_loss = nn.L1Loss()
+
         return rec_loss(recon, input)
     
     def KLD_loss_v1(self, mu, log_var):
@@ -196,8 +203,8 @@ class Trainer():
 
     def loss_function(self, recon_X, recon_Y, input_X, input_Y, zx_mu, zy_mu, zx_s_mu, zy_s_mu, zs_mu, zx_log_var, zy_log_var, zx_s_log_var, zy_s_log_var, zs_log_var):
 
-        recon_X_loss = self.reconstruction_loss(recon_X, input_X)
-        recon_Y_loss = self.reconstruction_loss(recon_Y, input_Y)
+        recon_X_loss = self.reconstruction_loss(recon_X, input_X, "L1")
+        recon_Y_loss = self.reconstruction_loss(recon_Y, input_Y, "L1")
 
         
 
@@ -217,9 +224,9 @@ class Trainer():
         return total_loss , [recon_X_loss.item(), recon_Y_loss.item(), kl_X_loss.item(), kl_Y_loss.item(), kl_S_loss.item(), kl_interX_loss.item(), kl_interY_loss.item()]
 
     def Unpack_Data(self, data):
-        cat_image = data["Cat"].detach().float().to(self.device)
-        dog_image = data["Dog"].detach().float().to(self.device)
-        return cat_image, dog_image
+        X_image = data["X"].detach().float().to(self.device)
+        Y_image = data["Y"].detach().float().to(self.device)
+        return X_image, Y_image
     
     def train(self):
         
@@ -275,6 +282,9 @@ class Trainer():
             self.optimizer_shr_enc.step()
             self.optimizer_dec.step()
 
+            self.scheduler_exc_enc.step()
+            self.scheduler_shr_enc.step()
+            self.scheduler_dec.step()
             
             loss_item = {}
             loss_item["recon_X_loss"] = item[0]
@@ -304,45 +314,45 @@ class Trainer():
                     if not os.path.exists(ith_sample_dir):
                         os.makedirs(ith_sample_dir)
 
-                    _, _, z_x = self.zx_encoder(X_fixed)
-                    _, _, z_y = self.zy_encoder(Y_fixed)
+                    z_x_mu, z_x_logvar, z_x = self.zx_encoder(X_fixed)
+                    z_y_mu, z_y_logvar, z_y = self.zy_encoder(Y_fixed)
                     fx = self.FE(X_fixed)
                     fy = self.FE(Y_fixed)
-                    _, _ , zx_s = self.zx_s_encoder(fx)
-                    _, _ , zy_s = self.zy_s_encoder(fy)
-                    _, _ , z_s = self.zs_encoder(fx, fy)
+                    zx_s_mu, zx_s_logvar , zx_s = self.zx_s_encoder(fx)
+                    zy_s_mu, zy_s_logvar , zy_s = self.zy_s_encoder(fy)
+                    z_s_mu_, _ , z_s = self.zs_encoder(fx, fy)
 
-                    X_fake_list = [X_fixed]
-                    Y_fake_list = [Y_fixed]
+                    X_fake_list = [Y_fixed]
+                    Y_fake_list = [X_fixed]
 
                     recon_X = self.x_decoder(z_x, z_s)
-                    Y2X = self.x_decoder(z_x, zy_s)
-                    rand0_Y2X= self.x_decoder(torch.randn_like(z_x), zy_s)
-                    rand1_Y2X= self.x_decoder(torch.randn_like(z_x), zy_s)
-                    rand2_Y2X= self.x_decoder(torch.randn_like(z_x), zy_s)
+                    Y2X = self.x_decoder(z_x_mu, zy_s_mu)
+                    rand0_Y2X= self.x_decoder(torch.randn_like(z_x_logvar), zy_s_mu)
+                    rand1_Y2X= self.x_decoder(torch.randn_like(z_x_logvar), zy_s_mu)
+                    rand2_Y2X= self.x_decoder(torch.randn_like(z_x_logvar), zy_s_mu)
                     X_fake_list.append(recon_X)
                     X_fake_list.append(Y2X)
                     X_fake_list.append(rand0_Y2X)
                     X_fake_list.append(rand1_Y2X)
                     X_fake_list.append(rand2_Y2X)
-                    X_fake_list.append(Y_fixed)
+                    X_fake_list.append(X_fixed)
 
                     recon_Y = self.y_decoder(z_y, z_s)
-                    X2Y =  self.y_decoder(z_y, zx_s)
-                    rand0_X2Y = self.y_decoder(torch.randn_like(z_y), zx_s)
-                    rand1_X2Y = self.y_decoder(torch.randn_like(z_y), zx_s)
-                    rand2_X2Y = self.y_decoder(torch.randn_like(z_y), zx_s)
+                    X2Y =  self.y_decoder(z_y_mu, zx_s_mu)
+                    rand0_X2Y = self.y_decoder(torch.randn_like(z_y_logvar), zx_s_mu)
+                    rand1_X2Y = self.y_decoder(torch.randn_like(z_y_logvar), zx_s_mu)
+                    rand2_X2Y = self.y_decoder(torch.randn_like(z_y_logvar), zx_s_mu)
                     Y_fake_list.append(recon_Y)
                     Y_fake_list.append(X2Y)                
                     Y_fake_list.append(rand0_X2Y)                
                     Y_fake_list.append(rand1_X2Y)                
                     Y_fake_list.append(rand2_X2Y)  
-                    Y_fake_list.append(X_fixed)              
+                    Y_fake_list.append(Y_fixed)              
                     
                     X_concat = torch.cat(X_fake_list, dim=3)
                     Y_concat = torch.cat(Y_fake_list, dim=3)
-                    sampleX_path = os.path.join(ith_sample_dir, "Dog2Cat.jpg")
-                    sampleY_path = os.path.join(ith_sample_dir, "Cat2Dog.jpg")
+                    sampleX_path = os.path.join(ith_sample_dir, "Y2X.jpg")
+                    sampleY_path = os.path.join(ith_sample_dir, "X2Y.jpg")
 
                     save_image(self.denorm(X_concat.cpu()), sampleX_path, nrow=1, padding =0)
                     save_image(self.denorm(Y_concat.cpu()), sampleY_path, nrow=1, padding =0)
@@ -372,7 +382,89 @@ class Trainer():
             
 
     def test(self):
-        return
 
+        self.load_model(self.model_save_dir, self.test_iters)
+        self.zx_encoder.to(self.device)
+        self.zy_encoder.to(self.device)
+        self.FE.to(self.device)
+        self.zs_encoder.to(self.device)
+        self.zx_s_encoder.to(self.device)
+        self.zy_s_encoder.to(self.device)
+        self.x_decoder.to(self.device)
+        self.y_decoder.to(self.device)
+        
+        
+        with torch.no_grad():
+            print(len(self.data_loader))
+            for batch_idx, data in enumerate(self.data_loader):
+                
+                input_X, input_Y = self.Unpack_Data(data)
+                
 
-    
+                z_x_mu, z_x_logvar, z_x = self.zx_encoder(input_X) # domain specific feature of X
+                z_y_mu, z_y_logvar, z_y = self.zy_encoder(input_Y) # domain specific feature of Y (ex color background, car angle)
+                fx = self.FE(input_X) 
+                fy = self.FE(input_Y)
+                zx_s_mu, zx_s_logvar , zx_s = self.zx_s_encoder(fx) # domain shared feature from X (ex digit identity, car identity)
+                zy_s_mu, zy_s_logvar , zy_s = self.zy_s_encoder(fy) # domain shared feature from Y
+                z_s_mu_, _ , z_s = self.zs_encoder(fx, fy)
+                
+                if batch_idx == 0:
+                    X_fixed = input_X
+                    Y_fixed = input_Y
+                    fix_z_x_mu , fix_z_x_logvar, fix_z_x = z_x_mu, z_x_logvar, z_x
+                    fix_z_y_mu, fix_z_y_logvar, fix_z_y =  z_y_mu, z_y_logvar, z_y
+                    fix_zx_s_mu, fix_zx_s_logvar , fix_zx_s =  zx_s_mu, zx_s_logvar , zx_s
+                    fix_zy_s_mu, fix_zy_s_logvar , fix_zy_s = zy_s_mu, zy_s_logvar , zy_s
+                
+                recon_X = self.x_decoder(z_x, z_s)
+                Y2X = self.x_decoder(z_x_mu, zy_s_mu)
+                rand0_Y2X= self.x_decoder(torch.randn_like(z_x_logvar), zy_s_mu)
+                rand1_Y2X= self.x_decoder(torch.randn_like(z_x_logvar), zy_s_mu)
+                rand2_Y2X= self.x_decoder(torch.randn_like(z_x_logvar), zy_s_mu)
+
+                recon_Y = self.y_decoder(z_y, z_s)
+                X2Y =  self.y_decoder(z_y_mu, zx_s_mu)
+                rand0_X2Y = self.y_decoder(torch.randn_like(z_y_logvar), zx_s_mu)
+                rand1_X2Y = self.y_decoder(torch.randn_like(z_y_logvar), zx_s_mu)
+                rand2_X2Y = self.y_decoder(torch.randn_like(z_y_logvar), zx_s_mu)
+
+                fixX2Y = self.y_decoder(z_y_mu, fix_zx_s_mu) # combine specific information(color information) of Y, and shared information(digit identity) of fixed X
+                fixY2X = self.x_decoder(z_x_mu, fix_zy_s_mu) # combine specific information of X, and shared information of fixed Y
+                fixX_list = [X_fixed, fixX2Y, input_Y] 
+                fixY_list = [Y_fixed, fixY2X, input_X]
+
+                X_fake_list = [input_Y]
+                X_fake_list.append(recon_X)
+                X_fake_list.append(Y2X)
+                X_fake_list.append(rand0_Y2X)
+                X_fake_list.append(rand1_Y2X)
+                X_fake_list.append(rand2_Y2X)
+                X_fake_list.append(input_X)
+
+                Y_fake_list = [input_X]
+                Y_fake_list.append(recon_Y)
+                Y_fake_list.append(X2Y)                
+                Y_fake_list.append(rand0_X2Y)                
+                Y_fake_list.append(rand1_X2Y)                
+                Y_fake_list.append(rand2_X2Y)  
+                Y_fake_list.append(input_Y) 
+
+                X_concat = torch.cat(X_fake_list, dim=3)
+                Y_concat = torch.cat(Y_fake_list, dim=3)
+                fixX_concat = torch.cat(fixX_list, dim = 3)
+                fixY_concat = torch.cat(fixY_list, dim = 3)
+
+                sampleX_path = os.path.join(self.result_dir, "Y2X_{}.jpg".format(batch_idx))
+                sampleY_path = os.path.join(self.result_dir, "X2Y_{}.jpg".format(batch_idx))
+                fixX_path = os.path.join(self.result_dir, 'fixX2Y_{}.jpg'.format(batch_idx))
+                fixY_path = os.path.join(self.result_dir, "fixY2X_{}.jpg".format(batch_idx))
+                save_image(self.denorm(X_concat.cpu()), sampleX_path, nrow=1, padding =0)
+                save_image(self.denorm(Y_concat.cpu()), sampleY_path, nrow=1, padding =0)
+                save_image(self.denorm(fixX_concat.cpu()), fixX_path, nrow=1, padding =0)
+                save_image(self.denorm(fixY_concat.cpu()), fixY_path, nrow=1, padding =0)
+                
+                print('Saved {}th results into {}...'.format(batch_idx, self.result_dir))
+
+                if batch_idx == 20:
+                    break

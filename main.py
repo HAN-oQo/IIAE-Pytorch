@@ -10,6 +10,10 @@ from training.training import Trainer
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+import gc
+gc.collect()
+torch.cuda.empty_cache()
+
 # Get config file from command line arguments
 if len(sys.argv) != 2:
     raise(RuntimeError("Wrong arguments, use python main.py <config_path>"))
@@ -51,6 +55,30 @@ if config["dataset"] == "AFHQ":
     else:
         train = False
         batch_size = test["batch_size"]
+elif config["dataset"] == 'Cars':
+    path_to_data = config["path_to_data"]
+    resolution = config["resolution"]
+    training = config["training"]
+    test = config["test"]
+
+    if config["train"]:
+        train = True
+        batch_size = training["batch_size"]
+    else:
+        train = False
+        batch_size = test["batch_size"]
+elif config["dataset"] == 'MNIST-CDCB':
+    path_to_data = config["path_to_data"]
+    resolution = config["resolution"]
+    training = config["training"]
+    test = config["test"]
+
+    if config["train"]:
+        train = True
+        batch_size = training["batch_size"]
+    else:
+        train = False
+        batch_size = test["batch_size"]
 else:
     raise(RuntimeError("Requested Dataset unfound"))
 
@@ -58,6 +86,7 @@ else:
 trainer = Trainer(device, 
                 train= train,
                 directory = directory,
+                dataset = config["dataset"],
                 path_to_data = path_to_data,
                 batch_size = batch_size,
                 size = resolution,

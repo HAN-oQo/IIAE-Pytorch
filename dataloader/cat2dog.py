@@ -44,7 +44,7 @@ class Cat2Dog(data.Dataset):
             cat_img = self.transforms(cat_img)
             dog_img = self.transforms(dog_img)
         
-        return {"Cat": cat_img, "Dog": dog_img}
+        return {"X": cat_img, "Y": dog_img}
     
     def __len__(self):
         return len(self.cats) + len(self.dogs)

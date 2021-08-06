@@ -62,20 +62,15 @@ class Decoder(BaseModel):
 
         self.weight_init()
 
-    # def weight_init(self):
-    #     for block in self._modules:
-    #         for m in self._modules[block]:
-    #             xavier_init(m)
-
 
     def forward(self, zx, zs):
         z = torch.cat((zx, zs), dim = 1)
         B, _ = z.size()
         input = self.z_to_dec(z)
         C = self.init_dim // (8*8)
+
         input = input.view(B, C, 8, 8)
         out = self.upsample(input)
         out = self.last_layer(out)
-
         return out
 

@@ -1,0 +1,32 @@
+{
+    "id": "IIAE_Cars",
+    "model": "IIAE",
+    "dataset": "Cars",
+    "path_to_data": "/home/hankyu/hankyu/disentangle/iiae/data/cars",
+    "train" : 0,  
+    "resolution": 256,
+    "training": {
+        "max_iters": 50000,
+        "resume_iters": 0,
+        "restored_model_path": "",
+        "batch_size": 16,
+        "lr": 0.00002,
+        "weight_decay": 0.0,
+        "beta1" : 0.9,
+        "beta2" : 0.999,
+        "milestones": [10000, 30000], 
+        "scheduler_gamma": 0.5,
+        "rec_weight": 100.2,
+        "X_kld_weight": 5.02,
+        "S_kld_weight": 0.02,
+        "inter_kld_weight": 5,
+        "print_freq": 100,
+        "sample_freq": 2000,
+        "model_save_freq": 5000
+    },
+    "test":{
+        "test_iters": 50000,
+        "batch_size" : 16,
+        "test_path": "/home/hankyu/hankyu/disentangle/iiae/2021-08-07_01-23_IIAE_Cars"
+    }
+}

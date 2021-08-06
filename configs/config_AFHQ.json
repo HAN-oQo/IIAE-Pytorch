@@ -1,11 +1,10 @@
-
 {
     "id": "IIAE_AFHQ",
     "model": "IIAE",
     "dataset": "AFHQ",
     "path_to_data": "/home/hankyu/hankyu/disentangle/afhq",
     "train" : 1,  
-    "resolution": 256,
+    "resolution": 128,
     "training": {
         "max_iters": 1e6,
         "resume_iters": 0,
@@ -17,14 +16,13 @@
         "beta2" : 0.999,
         "milestones": [], 
         "scheduler_gamma": 0.5,
-        "rec_weight": 1000,
-        "X_kld_weight": 50,
-        "S_kld_weight": 50,
-        "inter_kld_weight": 50,
+        "rec_weight": 100,
+        "X_kld_weight": 5,
+        "S_kld_weight": 5,
+        "inter_kld_weight": 5,
         "print_freq": 100,
         "sample_freq": 2000,
-        "model_save_freq": 5000,
-        "manual_seed": 1265
+        "model_save_freq": 5000
     },
     "test":{
         "test_iters": 115000,
