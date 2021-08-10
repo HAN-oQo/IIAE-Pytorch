@@ -119,12 +119,80 @@ Set **train: 1** for train, **train: 0** for test.
 ---
 ## Sample  Results
 ### 1. MNIST-CDCB
+**Domain Specific representation** : Color Foreground / Background  
+**Domain Shared representation** : Digit Identity
 
-### 2. Cars
+- X: Colored background
+- Y: Colored foreground(digit)
+
+**Experiment1 : < X to Y with different z_y(foreground color) >**
+
+|X(input)|Outputs with diffferentt z_y|X to Y(reference)|Y(reference)|
+|:---:|:---:|:---:|:---:|
+|![input](./imgs/MNIST/X2Y_13_06.jpg)|![outs](./imgs/MNIST/X2Y_13_09.jpg)|![2ref](./imgs/MNIST/X2Y_13_08.jpg)|![ref](./imgs/MNIST/X2Y_13_10.jpg)|
+
+**Experiment2 : < Y to X with different z_x(background color) >**
+|Y(input)|Outputs with diffferentt z_x|Y to X(reference)|X(reference)|
+|:---:|:---:|:---:|:---:|
+|![input](./imgs/MNIST/Y2X_7_01.jpg)|![outs](./imgs/MNIST/Y2X_7_04.jpg)|![2ref](./imgs/MNIST/Y2X_7_03.jpg)|![ref](./imgs/MNIST/Y2X_7_05.jpg)|
+
+**Experiment3 : < X to Y with different digits >**
+Digit Identity from X, Foreground Color from Y
+
+|X(Digit Identity)|Output|Y(Foreground Color)|
+|:---:|:---:|:---:|
+|<img src = "./imgs/MNIST/fixX2Y_18_01.jpg" width="50%">|<img src = "./imgs/MNIST/fixX2Y_18_02.jpg" width = "50%">|<img src = "./imgs/MNIST/fixX2Y_18_03.jpg" width = "50%">|
+
+**Experiment4 : < Y to X with different digit identity >**
+Digit Identity from Y, Background Color from X
+
+|Y(Digit Identity)|Output|X(Background Color)|
+|:---:|:---:|:---:|
+|<img src = "./imgs/MNIST/fixY2X_2_01.jpg" width="50%">|<img src = "./imgs/MNIST/fixY2X_2_02.jpg" width = "50%">|<img src = "./imgs/MNIST/fixY2X_2_03.jpg" width = "50%">|
+
+### 2. Cars 
+**Domain Specific representation** : Rotated Angle
+**Domain Shared representation** : Car Identity
+
+- X: Front view
+- Y: View in 23 different degrees
+
+**Experiment1 : < X to Y with different z_y(Angles) >**
+
+|X(input)|Outputs with diffferentt z_y|X to Y(reference)|Y(reference)|
+|:---:|:---:|:---:|:---:|
+|![input](./imgs/cars/X2Y_3_01.jpg)|![outs](./imgs/cars/X2Y_3_04.jpg)|![2ref](./imgs/cars/X2Y_3_03.jpg)|![ref](./imgs/cars/X2Y_3_05.jpg)|
+
+**Experiment2 : < Y to X with different z_x(front) >**
+|Y(input)|Outputs with diffferentt z_x|Y to X(reference)|X(reference)|
+|:---:|:---:|:---:|:---:|
+|![input](./imgs/cars/Y2X_0_01.jpg)|![outs](./imgs/cars/Y2X_0_04.jpg)|![2ref](./imgs/cars/Y2X_0_03.jpg)|![ref](./imgs/cars/Y2X_0_05.jpg)|
+
+**Experiment3 : < X to Y with different car identity >**
+Car Identity from X, Rotated Angle from Y
+
+|X(Car Identity)|Output|Y(Rotated Angle)|
+|:---:|:---:|:---:|
+|<img src = "./imgs/cars/fixX2Y_2_01.jpg" width="50%">|<img src = "./imgs/cars/fixX2Y_2_02.jpg" width = "50%">|<img src = "./imgs/cars/fixX2Y_2_03.jpg" width = "50%">|
+
+**Experiment4 : < Y to X with different car identity >**
+Car Identity from Y, Rotated Angle from X
+
+|Y(Car Identity)|Output|X(Rotated Angle)|
+|:---:|:---:|:---:|
+|<img src = "./imgs/cars/fixY2X_4_01.jpg" width="50%">|<img src = "./imgs/cars/fixY2X_4_02.jpg" width = "50%">|<img src = "./imgs/cars/fixY2X_4_03.jpg" width = "50%">|
 
 ### 3. AFHQ
+- **Leftmost column**: Input Image
+- **Rightmost column**: Reference image
 
-## Pre-trained Models
-### 1. [MNIST-CDCB(50000 iterations)]()
-### 2. [Cars(50000 iterations)]()
-### 3. [AFHQ]()
+
+**Results with 1000000 iterations**
+|Cat to Dog|
+|:---:|
+|<img src = ./imgs/Cat2Dog.jpg>|
+
+|Dog to Cat|
+|:---:|
+|<img src = ./imgs/Dog2Cat.jpg>|
+
