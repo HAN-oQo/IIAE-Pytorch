@@ -204,3 +204,9 @@ Car Identity from Y, Rotated Angle from X
 |:---:|
 |<img src = ./imgs/Dog2Cat.jpg>|
 
+---
+## References
+1. https://github.com/gr8joo/IIAE
+2. https://github.com/clovaai/stargan-v2
+3. https://github.com/SKTBrain/DiscoGAN
+4. https://github.com/agonzgarc/cross-domain-disen
